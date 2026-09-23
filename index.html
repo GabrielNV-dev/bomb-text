@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>💣 Bomb Party</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --panel: #17171b;
+    --panel-edge: #232328;
+    --fuse: #ff7a2f;
+    --fuse-dim: #7a3d17;
+    --danger: #ff3b3b;
+    --safe: #45d483;
+    --hazard: #ffcc00;
+    --text: #ecece7;
+    --text-dim: #8b8b92;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Oswald', sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 50% -10%, #241309 0%, var(--bg) 45%);
+    color: var(--text);
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  h1 {
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .fuse-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--fuse);
+    box-shadow: 0 0 10px 2px var(--fuse);
+    animation: piscar 1.4s ease-in-out infinite;
+  }
+  @keyframes piscar { 50% { opacity: .35; } }
+
+  .subtitulo { color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+
+  /* ---------- Login ---------- */
+  #login {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  #login label {
+    display: block; font-size: 12px; color: var(--text-dim);
+    margin: 14px 0 6px; letter-spacing: .03em;
+  }
+  #login label:first-child { margin-top: 0; }
+  input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    width: 100%;
+    padding: 11px 12px;
+    background: #0f0f12;
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus { border-color: var(--fuse); }
+
+  button {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    letter-spacing: .03em;
+    font-size: 15px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 13px 18px;
+    background: var(--fuse);
+    color: #1a0d02;
+    transition: transform .08s, filter .15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:active { transform: scale(.97); }
+  button.secundario {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--panel-edge);
+  }
+  button.secundario:hover { color: var(--text); border-color: var(--fuse-dim); }
+  button:disabled { opacity: .4; cursor: not-allowed; filter: none; transform: none; }
+
+  #entrar-btn { width: 100%; margin-top: 18px; }
+
+  /* ---------- Jogo ---------- */
+  #jogo { display: none; }
+
+  .status-linha {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; font-size: 13px; color: var(--text-dim);
+  }
+  .status-linha .codigo-sala {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--fuse);
+    letter-spacing: .05em;
+  }
+
+  #jogadores {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 20px;
+  }
+  .jog {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .jog .nome { color: var(--text); font-weight: 500; }
+  .jog .vidas { font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; }
+  .jog.vez {
+    border-color: var(--fuse);
+    box-shadow: 0 0 0 1px var(--fuse), 0 0 14px -2px var(--fuse);
+  }
+  .jog.eliminado { opacity: .35; text-decoration: line-through; }
+
+  /* ---------- Painel do detonador ---------- */
+  #painel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 14px;
+    padding: 34px 24px 26px;
+    text-align: center;
+    overflow: hidden;
+    transition: box-shadow .25s;
+  }
+  #painel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-repeat: repeat-x;
+    background-size: 26px 10px;
+    background-image: repeating-linear-gradient(45deg, var(--hazard) 0 6px, transparent 6px 12px);
+    opacity: .5;
+    height: 6px; top: 0;
+  }
+
+  #anel-wrap { position: relative; width: 176px; height: 176px; margin: 6px auto 14px; }
+  #anel-wrap svg { transform: rotate(-90deg); width: 176px; height: 176px; }
+  #anel-fundo { fill: none; stroke: var(--panel-edge); stroke-width: 8; }
+  #anel-progresso {
+    fill: none; stroke: var(--fuse); stroke-width: 8; stroke-linecap: round;
+    transition: stroke .25s;
+  }
+  #centro-anel {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #silaba {
+    font-size: 40px; font-weight: 700; letter-spacing: .02em;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  #tempo-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; font-weight: 600;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  #vez-de {
+    font-size: 14px; color: var(--text-dim); margin-bottom: 4px;
+  }
+  #vez-de b { color: var(--text); font-weight: 600; }
+
+  /* estado de urgência (pouco tempo) */
+  #painel.urgente #anel-progresso { stroke: var(--danger); }
+  #painel.urgente #silaba { animation: tremer .25s infinite; color: var(--danger); }
+  @keyframes tremer {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+
+  /* flash de acerto / erro */
+  #painel.flash-acerto { box-shadow: 0 0 0 2px var(--safe), 0 0 40px -6px var(--safe); }
+  #painel.flash-erro { box-shadow: 0 0 0 2px var(--danger), 0 0 40px -6px var(--danger); animation: explodir .4s; }
+  @keyframes explodir {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.02) rotate(-.4deg); }
+    60% { transform: scale(.99) rotate(.4deg); }
+    100% { transform: scale(1); }
+  }
+
+  #resultado-banner {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    min-height: 18px;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  #resultado-banner.mostrar { opacity: 1; }
+  #resultado-banner.ok { color: var(--safe); }
+  #resultado-banner.falha { color: var(--danger); }
+
+  /* ---------- Input de palavra ---------- */
+  #form-palavra {
+    display: flex; gap: 8px; margin-top: 22px;
+  }
+  #palavra {
+    flex: 1;
+    font-size: 16px;
+    padding: 13px 14px;
+    text-align: center;
+    letter-spacing: .02em;
+  }
+  #palavra.sua-vez { border-color: var(--fuse); }
+  #palavra:disabled { opacity: .5; }
+
+  #barra-acoes {
+    display: flex; gap: 10px; margin-top: 14px;
+  }
+  #barra-acoes button { flex: 1; }
+
+  /* ---------- Log ---------- */
+  #log-titulo {
+    font-size: 12px; color: var(--text-dim); letter-spacing: .05em;
+    margin: 24px 0 8px;
+  }
+  #log {
+    background: #0f0f12;
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    padding: 6px;
+    height: 190px;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .log-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    background: #17171b;
+    color: var(--text-dim);
+    display: flex; gap: 8px;
+  }
+  .log-item.ok { color: var(--safe); background: #10241a; }
+  .log-item.erro { color: var(--danger); background: #241012; }
+  .log-item.info { color: var(--fuse); background: #241a10; }
+  .log-item.fim { color: var(--hazard); background: #241f10; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1><span class="fuse-dot"></span> BOMB PARTY</h1>
+<div class="subtitulo">Multiplayer em tempo real — crie ou entre em uma sala e jogue.</div>
+
+<div id="login">
+  <label for="codigo">Código da partida</label>
+  <input id="codigo" placeholder="ex: sala1" autocomplete="off">
+  <label for="nome">Seu nome</label>
+  <input id="nome" placeholder="ex: Ana" autocomplete="off" maxlength="20">
+  <button id="entrar-btn">Entrar na partida</button>
+</div>
+
+<div id="jogo">
+  <div class="status-linha">
+    <span>Sala: <span class="codigo-sala" id="codigo-exibido">-</span></span>
+    <button class="secundario" id="iniciar-btn" style="display:none">Iniciar partida</button>
+  </div>
+
+  <div id="jogadores"></div>
+
+  <div id="painel">
+    <div id="vez-de">aguardando início...</div>
+    <div id="anel-wrap">
+      <svg viewBox="0 0 60 60">
+        <circle id="anel-fundo" cx="30" cy="30" r="26"></circle>
+        <circle id="anel-progresso" cx="30" cy="30" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"></circle>
+      </svg>
+      <div id="centro-anel">
+        <div id="silaba">-</div>
+        <div id="tempo-num">--</div>
+      </div>
+    </div>
+    <div id="resultado-banner"></div>
+
+    <form id="form-palavra">
+      <input id="palavra" placeholder="digite uma palavra..." disabled autocomplete="off">
+      <button type="submit">Enviar</button>
+    </form>
+  </div>
+
+  <div id="log-titulo">REGISTRO DA PARTIDA</div>
+  <div id="log"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
+  collection, addDoc, arrayUnion, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// ============================================================
+// CONFIGURAÇÃO DO FIREBASE (config WEB, é pública — NÃO é a chave.json)
+// Console Firebase > Configurações do projeto > Seus apps > App da Web
+// ============================================================
+const firebaseConfig = {
+  apiKey: "COLE_AQUI",
+  authDomain: "bomb-text-9bbf6.firebaseapp.com",
+  projectId: "bomb-text-9bbf6",
+  appId: "COLE_AQUI"
+};
+
+const SILABAS = [
+  "ar","en","to","ção","de","com","pro","tra","es","in",
+  "par","ver","tas","al","os","contra","ber","gir","dor",
+  "ta","re","mi","ca","va"
+];
+const VIDAS_INICIAIS = 2;
+const TEMPO_INICIAL = 10.0;
+const TEMPO_MINIMO = 4.0;
+const DECREMENTO_TEMPO = 0.5;
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---------- Estado local ----------
+const meuId = crypto.randomUUID();
+let codigo = null, meuNome = "Jogador";
+let pRef = null;
+let partida = null;              // espelho do documento da partida
+let jogadores = {};              // espelho da subcoleção jogadores
+let ultimosNomes = {};
+let turnoAtual = null;
+let ultimoTurnoN = 0, ultimoEventoN = 0, ultimoAvisoN = 0;
+
+let temporizador = null, tempoTotalTurno = 0, tempoRestanteTurno = 0;
+const CIRCUNFERENCIA = 2 * Math.PI * 26;
+const $ = (id) => document.getElementById(id);
+$('anel-progresso').setAttribute('stroke-dasharray', CIRCUNFERENCIA.toFixed(2));
+
+function log(mensagem, tipo = '') {
+  const el = $('log');
+  const item = document.createElement('div');
+  item.className = 'log-item' + (tipo ? ' ' + tipo : '');
+  item.textContent = mensagem;
+  el.appendChild(item);
+  el.scrollTop = el.scrollHeight;
+}
+const nomeDe = (id) => ultimosNomes[id] || String(id).slice(0, 4);
+
+// ============================================================
+// ENTRAR NA PARTIDA
+// ============================================================
+async function conectar() {
+  codigo = $('codigo').value.trim();
+  meuNome = $('nome').value.trim() || "Jogador";
+  if (!codigo) { alert("Digite o código da partida"); return; }
+  if (codigo.includes('/')) { alert("O código não pode conter '/'"); return; }
+
+  const btn = $('entrar-btn');
+  btn.disabled = true; btn.textContent = "Conectando...";
+
+  try {
+    pRef = doc(db, "partidas", codigo);
+    const snap = await getDoc(pRef);
+
+    if (!snap.exists()) {
+      // quem cria a sala vira o anfitrião (roda o loop do jogo)
+      await setDoc(pRef, {
+        status: "aguardando", host: meuId,
+        silaba_atual: null, turno_atual: null, turno_n: 0,
+        ordem_jogadores: [], tempo_por_turno: TEMPO_INICIAL,
+        palavras_usadas: [], criada_em: serverTimestamp(),
+        vencedor: null, evento: null, aviso: null
+      });
+    } else if (snap.data().status !== "aguardando") {
+      alert("Essa partida já começou ou terminou.");
+      btn.disabled = false; btn.textContent = "Entrar na partida";
+      return;
+    }
+
+    await setDoc(doc(pRef, "jogadores", meuId), {
+      nome: meuNome, vidas: VIDAS_INICIAIS, pontuacao: 0,
+      ativo: true, entrou_em: serverTimestamp()
+    });
+    await updateDoc(pRef, { ordem_jogadores: arrayUnion(meuId) });
+
+    $('login').style.display = 'none';
+    $('jogo').style.display = 'block';
+    $('codigo-exibido').textContent = codigo;
+    log(`Conectado à partida "${codigo}" como ${meuNome}`, 'info');
+    ouvir();
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao conectar: " + e.message);
+    btn.disabled = false; btn.textContent = "Entrar na partida";
+  }
+}
+
+// Marca o jogador como fora ao fechar a aba (melhor esforço)
+function sair() {
+  if (!pRef) return;
+  updateDoc(doc(pRef, "jogadores", meuId), { ativo: false, vidas: 0 }).catch(() => {});
+}
+window.addEventListener('pagehide', sair);
+window.addEventListener('beforeunload', sair);
+
+// ============================================================
+// OUVINTES (todos os jogadores, inclusive o anfitrião)
+// ============================================================
+function ouvir() {
+  onSnapshot(pRef, (snap) => {
+    if (!snap.exists()) return;
+    const primeira = partida === null;
+    partida = snap.data();
+
+    if (primeira) {
+      ultimoEventoN = partida.evento?.n || 0;
+      ultimoAvisoN = partida.aviso?.n || 0;
+      ultimoTurnoN = partida.turno_n || 0;
+    }
+    atualizarBotaoIniciar();
+
+    if (partida.evento && partida.evento.n !== ultimoEventoN) {
+      ultimoEventoN = partida.evento.n;
+      tratarEvento(partida.evento);
+    }
+    if (partida.aviso && partida.aviso.n !== ultimoAvisoN) {
+      ultimoAvisoN = partida.aviso.n;
+      if (partida.aviso.para === meuId) log(partida.aviso.mensagem, 'info');
+    }
+    if (partida.status === "em_andamento" && partida.turno_n !== ultimoTurnoN) {
+      ultimoTurnoN = partida.turno_n;
+      novoTurno(partida);
+    }
+  });
+
+  onSnapshot(collection(pRef, "jogadores"), (snap) => {
+    const antes = new Set(Object.keys(jogadores));
+    jogadores = {};
+    snap.forEach((d) => { jogadores[d.id] = d.data(); ultimosNomes[d.id] = d.data().nome; });
+    for (const id in jogadores) {
+      if (!antes.has(id) && id !== meuId) log(`${jogadores[id].nome} entrou na sala`, 'info');
+    }
+    renderJogadores();
+  });
+}
+
+function atualizarBotaoIniciar() {
+  const btn = $('iniciar-btn');
+  const mostrar = partida && partida.host === meuId && partida.status === "aguardando";
+  btn.style.display = mostrar ? '' : 'none';
+  if (partida && partida.status === "aguardando" && partida.host !== meuId) {
+    $('vez-de').textContent = "aguardando o anfitrião iniciar...";
+  }
+}
+
+// ============================================================
+// RENDERIZAÇÃO
+// ============================================================
+function renderJogadores() {
+  const container = $('jogadores');
+  container.innerHTML = '';
+  const ordem = partida?.ordem_jogadores?.length ? partida.ordem_jogadores : Object.keys(jogadores);
+  for (const id of ordem) {
+    const j = jogadores[id];
+    if (!j) continue;
+    const div = document.createElement('div');
+    div.className = 'jog' + (id === turnoAtual ? ' vez' : '') + (j.vidas <= 0 ? ' eliminado' : '');
+    const n = document.createElement('span'); n.className = 'nome'; n.textContent = j.nome;
+    const v = document.createElement('span'); v.className = 'vidas'; v.textContent = '♥'.repeat(j.vidas) || '—';
+    div.append(n, v);
+    container.appendChild(div);
+  }
+}
+
+function pararTemporizador() { if (temporizador) clearInterval(temporizador); temporizador = null; }
+
+function iniciarTemporizador(segundos) {
+  pararTemporizador();
+  tempoTotalTurno = segundos; tempoRestanteTurno = segundos;
+  atualizarAnel();
+  temporizador = setInterval(() => {
+    tempoRestanteTurno = Math.max(0, tempoRestanteTurno - 0.1);
+    atualizarAnel();
+    if (tempoRestanteTurno <= 0) pararTemporizador();
+  }, 100);
+}
+
+function atualizarAnel() {
+  const proporcao = tempoTotalTurno > 0 ? tempoRestanteTurno / tempoTotalTurno : 0;
+  $('anel-progresso').setAttribute('stroke-dashoffset', (CIRCUNFERENCIA * (1 - proporcao)).toFixed(2));
+  $('tempo-num').textContent = tempoRestanteTurno.toFixed(1) + 's';
+  $('painel').classList.toggle('urgente', tempoRestanteTurno <= tempoTotalTurno * 0.25);
+}
+
+function mostrarResultado(texto, classe) {
+  const banner = $('resultado-banner');
+  banner.textContent = texto;
+  banner.className = 'mostrar ' + classe;
+  clearTimeout(banner._timeout);
+  banner._timeout = setTimeout(() => banner.classList.remove('mostrar'), 2200);
+}
+
+function piscarPainel(classe) {
+  const painel = $('painel');
+  painel.classList.remove('flash-acerto', 'flash-erro');
+  void painel.offsetWidth;
+  painel.classList.add(classe);
+  setTimeout(() => painel.classList.remove(classe), 500);
+}
+
+function novoTurno(p) {
+  turnoAtual = p.turno_atual;
+  const souEu = turnoAtual === meuId;
+  $('silaba').textContent = p.silaba_atual.toUpperCase();
+  const vez = $('vez-de');
+  vez.innerHTML = '';
+  if (souEu) { const b = document.createElement('b'); b.textContent = 'é a sua vez!'; vez.appendChild(b); }
+  else {
+    vez.append('vez de ');
+    const b = document.createElement('b'); b.textContent = nomeDe(turnoAtual); vez.appendChild(b);
+  }
+  const campo = $('palavra');
+  campo.disabled = !souEu;
+  campo.classList.toggle('sua-vez', souEu);
+  campo.placeholder = souEu ? `use a sílaba "${p.silaba_atual}"...` : 'aguarde sua vez...';
+  if (souEu) campo.focus();
+  $('iniciar-btn').style.display = 'none';
+  renderJogadores();
+  iniciarTemporizador(p.tempo_por_turno);
+  log(`Sílaba "${p.silaba_atual}" — vez de ${nomeDe(turnoAtual)}`, 'info');
+}
+
+function tratarEvento(ev) {
+  switch (ev.tipo) {
+    case 'acerto':
+      pararTemporizador();
+      if (ev.jogador_id === meuId || ev.jogador_id === turnoAtual) {
+        piscarPainel('flash-acerto');
+        mostrarResultado(`✓ "${ev.palavra}" aceita!`, 'ok');
+      }
+      log(`Palavra aceita: "${ev.palavra}" (+1 ponto, total ${ev.pontuacao})`, 'ok');
+      break;
+    case 'erro_tempo':
+      pararTemporizador();
+      if (ev.jogador_id === meuId) { piscarPainel('flash-erro'); mostrarResultado('✗ tempo esgotado!', 'falha'); }
+      log(`${nomeDe(ev.jogador_id)} não respondeu a tempo — vida perdida (restam ${ev.vidas_restantes})`, 'erro');
+      if (ev.eliminado) log(`${nomeDe(ev.jogador_id)} foi eliminado da partida!`, 'erro');
+      break;
+    case 'fim_de_jogo': {
+      pararTemporizador();
+      const vez = $('vez-de'); vez.innerHTML = '';
+      if (ev.vencedor_nome) {
+        const b = document.createElement('b'); b.textContent = ev.vencedor_nome;
+        vez.append(b, ' venceu a partida!');
+      } else vez.textContent = 'a partida terminou sem vencedor';
+      $('silaba').textContent = '🏆';
+      $('tempo-num').textContent = '';
+      $('palavra').disabled = true;
+      log(`FIM DE JOGO — vencedor: ${ev.vencedor_nome || 'ninguém'}`, 'fim');
+      break;
+    }
+  }
+}
+
+// ============================================================
+// AÇÕES DO JOGADOR
+// ============================================================
+async function enviarPalavra() {
+  const campo = $('palavra');
+  const texto = campo.value.trim();
+  if (!texto || campo.disabled || !partida) return;
+  campo.value = '';
+  try {
+    await addDoc(collection(pRef, "jogadas"), {
+      jogador_id: meuId, texto, turno_n: partida.turno_n, ts: serverTimestamp()
+    });
+  } catch (e) { log("Falha ao enviar palavra: " + e.message, 'erro'); }
+}
+
+// ============================================================
+// LÓGICA DO ANFITRIÃO (equivalente ao loop_partida do Python)
+// Só quem criou a sala executa isto.
+// ============================================================
+const fila = [];
+let aguardando = null;
+function empurrar(item) { if (aguardando) aguardando(item); else fila.push(item); }
+function esperarItem(ms) {
+  return new Promise((resolve) => {
+    if (fila.length) return resolve(fila.shift());
+    const t = setTimeout(() => { aguardando = null; resolve(null); }, ms);
+    aguardando = (item) => { clearTimeout(t); aguardando = null; resolve(item); };
+  });
+}
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let avisoN = 0, eventoN = 0;
+function avisar(para, mensagem) {
+  updateDoc(pRef, { aviso: { n: ++avisoN, para, mensagem } }).catch(() => {});
+}
+function emitir(ev) { return updateDoc(pRef, { evento: { n: ++eventoN, ...ev } }); }
+
+async function validarPalavraApi(palavra) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 3000);
+  try {
+    const r = await fetch(`https://api.dicionario-aberto.net/word/${encodeURIComponent(palavra)}`, { signal: ctrl.signal });
+    if (r.status !== 200) return false;
+    const dados = await r.json();
+    return Array.isArray(dados) ? dados.length > 0 : !!dados;
+  } catch (e) {
+    // API fora do ar / bloqueada: aceita a palavra (mesma decisão do original)
+    console.warn("Dicionário indisponível, aceitando palavra:", e);
+    return true;
+  } finally { clearTimeout(t); }
+}
+
+async function aguardarJogada(jogadorAtual, tempoTurno, silaba, turnoN, usadas) {
+  const inicio = performance.now();
+  while (true) {
+    const restante = tempoTurno * 1000 - (performance.now() - inicio);
+    if (restante <= 0) return false;
+    const item = await esperarItem(restante);
+    if (item === null) return false;
+    if (item.turno_n !== turnoN) continue; // jogada de turno antigo
+
+    const remetente = item.jogador_id;
+    const texto = String(item.texto || '').trim().toLowerCase();
+
+    if (remetente !== jogadorAtual) { avisar(remetente, "Não é sua vez!"); continue; }
+    if (!texto) continue;
+    if (!texto.includes(silaba)) { avisar(remetente, `A palavra precisa conter '${silaba}'.`); continue; }
+    if (usadas.has(texto)) { avisar(remetente, "Essa palavra já foi usada."); continue; }
+
+    const valida = await validarPalavraApi(texto);
+    if (!valida) { avisar(remetente, "Palavra não encontrada no dicionário."); continue; }
+    if (performance.now() - inicio > tempoTurno * 1000) return false;
+
+    usadas.add(texto);
+    const pontos = (jogadores[remetente]?.pontuacao || 0) + 1;
+    await Promise.all([
+      updateDoc(pRef, { palavras_usadas: arrayUnion(texto) }),
+      updateDoc(doc(pRef, "jogadores", remetente), { pontuacao: pontos }),
+    ]);
+    await emitir({ tipo: 'acerto', jogador_id: remetente, palavra: texto, pontuacao: pontos });
+    return true;
+  }
+}
+
+async function loopPartida() {
+  let tempo = TEMPO_INICIAL, indice = 0, turnoN = 0;
+  const usadas = new Set();
+
+  // escuta as jogadas de todos os jogadores
+  onSnapshot(collection(pRef, "jogadas"), (snap) => {
+    snap.docChanges().forEach((c) => { if (c.type === 'added') empurrar(c.doc.data()); });
+  });
+
+  while (true) {
+    const ordem = partida.ordem_jogadores;
+    const ativos = ordem.filter((id) => jogadores[id]?.ativo);
+
+    if (ativos.length <= 1) {
+      const vencedorId = ativos[0] || null;
+      const vencedorNome = vencedorId ? jogadores[vencedorId].nome : null;
+      await updateDoc(pRef, { status: "finalizada", vencedor: vencedorId });
+      await emitir({ tipo: 'fim_de_jogo', vencedor_id: vencedorId, vencedor_nome: vencedorNome });
+      break;
+    }
+
+    const jogadorAtual = ativos[indice % ativos.length];
+    indice++;
+    const silaba = SILABAS[Math.floor(Math.random() * SILABAS.length)];
+    turnoN++;
+    fila.length = 0;
+
+    await updateDoc(pRef, {
+      turno_atual: jogadorAtual, silaba_atual: silaba,
+      tempo_por_turno: tempo, turno_n: turnoN
+    });
+
+    const acertou = await aguardarJogada(jogadorAtual, tempo, silaba, turnoN, usadas);
+
+    if (acertou) {
+      tempo = Math.max(TEMPO_MINIMO, tempo - DECREMENTO_TEMPO);
+    } else {
+      const vidas = Math.max((jogadores[jogadorAtual]?.vidas || 0) - 1, 0);
+      const dados = { vidas };
+      if (vidas <= 0) dados.ativo = false;
+      await updateDoc(doc(pRef, "jogadores", jogadorAtual), dados);
+      await emitir({
+        tipo: 'erro_tempo', jogador_id: jogadorAtual,
+        vidas_restantes: vidas, eliminado: vidas <= 0
+      });
+    }
+    await dormir(1200); // pausa para os jogadores lerem o resultado
+  }
+}
+
+async function iniciar() {
+  if (!partida || partida.host !== meuId) return;
+  const ativos = Object.values(jogadores).filter((j) => j.ativo).length;
+  if (partida.status !== "aguardando" || ativos < 2) {
+    log("Precisa de pelo menos 2 jogadores.", 'info');
+    return;
+  }
+  await updateDoc(pRef, { status: "em_andamento" });
+  loopPartida();
+}
+
+// ---------- Eventos de UI ----------
+$('entrar-btn').addEventListener('click', conectar);
+$('iniciar-btn').addEventListener('click', iniciar);
+$('form-palavra').addEventListener('submit', (e) => { e.preventDefault(); enviarPalavra(); });
+$('codigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('nome').focus(); });
+$('nome').addEventListener('keydown', (e) => { if (e.key === 'Enter') conectar(); });
+</script>
+</body>
+</html>
