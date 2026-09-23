@@ -283,9 +283,10 @@
     margin-bottom: 18px;
   }
   .carta-palavra .rotulo { font-size: 11px; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase; }
-  .carta-palavra .valor { font-size: 30px; font-weight: 700; color: var(--text); margin-top: 6px; text-transform: uppercase; }
-  .carta-palavra.impostora { border-color: var(--danger); background: linear-gradient(135deg, #3a1414, #1a0d0d); }
+  .carta-palavra .valor { font-size: 30px; font-weight: 700; color: var(--text); margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; transition: color .15s; }
   .carta-palavra.impostora .valor { color: var(--danger); }
+  .carta-palavra .valor.escondida { color: var(--text-dim); }
+  .carta-palavra .btn-revelar { margin-top: 12px; }
 
   #fase-titulo { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 10px; }
   #fase-titulo b { color: var(--text); }
@@ -518,7 +519,7 @@ $('nome').addEventListener('keydown', (e) => {
    ============================================================ */
 
 const SILABAS = [
-  "a","e","i","o","u",
+  // Sílabas simples
   "ba","be","bi","bo","bu",
   "ca","ce","ci","co","cu",
   "da","de","di","do","du",
@@ -533,13 +534,15 @@ const SILABAS = [
   "sa","se","si","so","su",
   "ta","te","ti","to","tu",
   "va","ve","vi","vo","vu",
-  "xa","xe","xi","xo","xu",
-  "za","ze","zi","zo","zu",
+
+  // Finais frequentes
   "ar","er","ir","or","ur",
   "an","en","in","on","un",
   "as","es","is","os","us",
   "am","em","im","om","um",
   "al","el","il","ol","ul",
+
+  // Encontros consonantais comuns
   "bra","bre","bri","bro","bru",
   "cla","cle","cli","clo","clu",
   "cra","cre","cri","cro","cru",
@@ -549,32 +552,38 @@ const SILABAS = [
   "pla","ple","pli","plo","plu",
   "pra","pre","pri","pro","pru",
   "tra","tre","tri","tro","tru",
-  "vra","vre","vri","vro","vru",
-  "ção","são","tão","rão","mão",
-  "ções","sões","mento","mente",
-  "dade","tade","nho","nha",
-  "lho","lha","cho","cha",
-  "que","qui","gue","gui",
-  "qua","que","qui","quo",
+
+  // Combinações muito comuns
+  "que","qui",
+  "gue","gui",
+  "qua","quo",
+  "cha","che","chi","cho","chu",
+  "lha","lhe","lhi","lho","lhu",
+  "nha","nhe","nhi","nho","nhu",
+
+  // Terminações frequentes
   "bar","ber","bir","bor","bur",
   "car","cer","cir","cor","cur",
   "dar","der","dir","dor","dur",
-  "far","fer","fir","for","fur",
-  "gar","ger","gir","gor","gur",
   "mar","mer","mir","mor","mur",
-  "nar","ner","nir","nor","nur",
   "par","per","pir","por","pur",
   "tar","ter","tir","tor","tur",
-  "var","ver","vir","vor","vur",
-  "pro","pre","pri","pra","pru",
-  "con","com","cor","cas","car",
-  "des","dis","dos","das","der",
-  "sub","sup","sob","sobre",
-  "trans","tri","inter","extra",
-  "anti","auto","super","multi"
-];
 
-const VIDAS_INICIAIS = 2;
+  // Sufixos muito comuns
+  "ção","são","tão","rão","mão",
+  "ções","sões",
+  "mento","mente",
+  "dade",
+
+  // Prefixos/encontros frequentes
+  "con","com",
+  "des","dis",
+  "sub","sup",
+  "sob","sobre",
+  "trans","inter",
+  "extra","anti","auto","super","multi"
+];
+const VIDAS_INICIAIS = 3;
 const TEMPO_INICIAL = 10.0;
 const TEMPO_MINIMO = 5.0;
 const DECREMENTO_TEMPO = 0.4;
@@ -982,6 +991,8 @@ const PARES_PALAVRAS = [
 const TEMPO_DICA = 45000;
 const TEMPO_VOTACAO = 30000;
 const MIN_JOGADORES_DET = 4;
+const RODADAS_DICAS_POR_VOTACAO = 2;
+const TEMPO_REVELAR_PALAVRA = 3000;
 
 let codigoDet = null, meuNomeDet = "Jogador";
 let dRef = null;
@@ -1116,16 +1127,57 @@ function renderJogadoresDetetive() {
   }
 }
 
+let ultimaCartaRenderizada = null;
+let timerEsconderPalavra = null;
 function renderMinhaCartaDetetive() {
   const meu = jogadoresDet[meuId];
   const el = $('minha-carta');
-  if (!meu || !meu.papel) { el.innerHTML = ''; return; }
+  if (!meu || !meu.papel) {
+    el.innerHTML = '';
+    ultimaCartaRenderizada = null;
+    clearTimeout(timerEsconderPalavra);
+    return;
+  }
+  // evita recriar a carta (e perder o estado de revelar/esconder) quando o
+  // snapshot de jogadores atualiza por outro motivo (ex: alguém foi eliminado)
+  const chave = meu.papel + '|' + meu.palavra;
+  if (chave === ultimaCartaRenderizada) return;
+  ultimaCartaRenderizada = chave;
+  clearTimeout(timerEsconderPalavra);
+
   el.innerHTML = '';
   const carta = document.createElement('div');
   carta.className = 'carta-palavra' + (meu.papel === 'impostor' ? ' impostora' : '');
-  carta.innerHTML = `<div class="rotulo">${meu.papel === 'impostor' ? 'sua palavra (você é o impostor!)' : 'sua palavra secreta'}</div>
-                      <div class="valor">${meu.palavra}</div>`;
+  carta.innerHTML = `<div class="rotulo">${meu.papel === 'impostor' ? 'sua palavra secreta' : 'sua palavra secreta'}</div>
+                      <div class="valor escondida" id="valor-palavra-det">${'•'.repeat(3)}</div>
+                      <button type="button" class="secundario pequeno btn-revelar" id="btn-revelar-palavra">Revelar palavra</button>`;
   el.appendChild(carta);
+
+  const valorEl = $('valor-palavra-det');
+  const btn = $('btn-revelar-palavra');
+  let revelada = false;
+
+  function atualizarCartaPalavra() {
+    clearTimeout(timerEsconderPalavra);
+    if (revelada) {
+      valorEl.textContent = meu.palavra;
+      valorEl.classList.remove('escondida');
+      btn.textContent = 'Esconder palavra';
+      timerEsconderPalavra = setTimeout(() => {
+        revelada = false;
+        atualizarCartaPalavra();
+      }, TEMPO_REVELAR_PALAVRA);
+    } else {
+      valorEl.textContent = '•'.repeat(3);
+      valorEl.classList.add('escondida');
+      btn.textContent = 'Revelar palavra';
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    revelada = !revelada;
+    atualizarCartaPalavra();
+  });
 }
 
 function renderFaseDicas() {
@@ -1134,16 +1186,20 @@ function renderFaseDicas() {
   $('revelacao-final').style.display = 'none';
   const souEu = salaDet.jogador_vez === meuId;
   const titulo = $('fase-titulo');
+  const sub = salaDet.subrodada || 1;
+  const totalSub = salaDet.total_subrodadas || RODADAS_DICAS_POR_VOTACAO;
+  const rotuloPista = totalSub > 1 ? ` — pista ${sub}/${totalSub}` : '';
   titulo.innerHTML = souEu
-    ? `<b>é a sua vez</b> de dar uma dica (rodada ${salaDet.rodada})`
-    : `rodada ${salaDet.rodada} — vez de <b>${nomeDeDet(salaDet.jogador_vez)}</b> dar uma dica`;
+    ? `<b>é a sua vez</b> de dar uma dica (rodada ${salaDet.rodada}${rotuloPista})`
+    : `rodada ${salaDet.rodada}${rotuloPista} — vez de <b>${nomeDeDet(salaDet.jogador_vez)}</b> dar uma dica`;
 
   const listaEl = $('lista-dicas');
   listaEl.innerHTML = '';
   (salaDet.dicas_rodada || []).forEach((d) => {
     const item = document.createElement('div');
     item.className = 'item-dica';
-    item.innerHTML = `<span class="quem">${nomeDeDet(d.jogador_id)}:</span><span>${d.texto || '(sem dica)'}</span>`;
+    const marcador = totalSub > 1 && d.subrodada ? ` <span style="color:var(--text-dim)">(pista ${d.subrodada})</span>` : '';
+    item.innerHTML = `<span class="quem">${nomeDeDet(d.jogador_id)}:${marcador}</span><span>${d.texto || '(sem dica)'}</span>`;
     listaEl.appendChild(item);
   });
 
@@ -1282,12 +1338,18 @@ async function loopDetetive() {
 
     rodada++;
     filaDicas.length = 0;
-    await updateDoc(dRef, { status: 'dicas', rodada, jogador_vez: ativos[0], dicas_rodada: [] });
+    await updateDoc(dRef, {
+      status: 'dicas', rodada, jogador_vez: ativos[0], dicas_rodada: [],
+      subrodada: 1, total_subrodadas: RODADAS_DICAS_POR_VOTACAO
+    });
 
-    for (const jid of ativos) {
-      await updateDoc(dRef, { jogador_vez: jid });
-      const texto = await aguardarDicaDe(jid, rodada);
-      await updateDoc(dRef, { dicas_rodada: arrayUnion({ jogador_id: jid, texto: texto || '(sem dica)' }) });
+    for (let sub = 1; sub <= RODADAS_DICAS_POR_VOTACAO; sub++) {
+      await updateDoc(dRef, { subrodada: sub });
+      for (const jid of ativos) {
+        await updateDoc(dRef, { jogador_vez: jid });
+        const texto = await aguardarDicaDe(jid, rodada);
+        await updateDoc(dRef, { dicas_rodada: arrayUnion({ jogador_id: jid, texto: texto || '(sem dica)', subrodada: sub }) });
+      }
     }
 
     await updateDoc(dRef, { status: 'votacao' });
