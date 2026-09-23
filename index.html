@@ -331,14 +331,71 @@ const firebaseConfig = {
 };
 
 const SILABAS = [
-  "ar","en","to","ção","de","com","pro","tra","es","in",
-  "par","ver","tas","al","os","contra","ber","gir","dor",
-  "ta","re","mi","ca","va"
+  "a","e","i","o","u",
+  "ba","be","bi","bo","bu",
+  "ca","ce","ci","co","cu",
+  "da","de","di","do","du",
+  "fa","fe","fi","fo","fu",
+  "ga","ge","gi","go","gu",
+  "ja","je","ji","jo","ju",
+  "la","le","li","lo","lu",
+  "ma","me","mi","mo","mu",
+  "na","ne","ni","no","nu",
+  "pa","pe","pi","po","pu",
+  "ra","re","ri","ro","ru",
+  "sa","se","si","so","su",
+  "ta","te","ti","to","tu",
+  "va","ve","vi","vo","vu",
+  "xa","xe","xi","xo","xu",
+  "za","ze","zi","zo","zu",
+
+  "ar","er","ir","or","ur",
+  "an","en","in","on","un",
+  "as","es","is","os","us",
+  "am","em","im","om","um",
+  "al","el","il","ol","ul",
+
+  "bra","bre","bri","bro","bru",
+  "cla","cle","cli","clo","clu",
+  "cra","cre","cri","cro","cru",
+  "dra","dre","dri","dro","dru",
+  "fra","fre","fri","fro","fru",
+  "gra","gre","gri","gro","gru",
+  "pla","ple","pli","plo","plu",
+  "pra","pre","pri","pro","pru",
+  "tra","tre","tri","tro","tru",
+  "vra","vre","vri","vro","vru",
+
+  "ção","são","tão","rão","mão",
+  "ções","sões","mento","mente",
+  "dade","tade","nho","nha",
+  "lho","lha","cho","cha",
+  "que","qui","gue","gui",
+  "qua","que","qui","quo",
+
+  "bar","ber","bir","bor","bur",
+  "car","cer","cir","cor","cur",
+  "dar","der","dir","dor","dur",
+  "far","fer","fir","for","fur",
+  "gar","ger","gir","gor","gur",
+  "mar","mer","mir","mor","mur",
+  "nar","ner","nir","nor","nur",
+  "par","per","pir","por","pur",
+  "tar","ter","tir","tor","tur",
+  "var","ver","vir","vor","vur",
+
+  "pro","pre","pri","pra","pru",
+  "con","com","cor","cas","car",
+  "des","dis","dos","das","der",
+  "sub","sup","sob","sobre",
+  "trans","tri","inter","extra",
+  "anti","auto","super","multi"
 ];
+
 const VIDAS_INICIAIS = 2;
 const TEMPO_INICIAL = 10.0;
-const TEMPO_MINIMO = 4.0;
-const DECREMENTO_TEMPO = 0.5;
+const TEMPO_MINIMO = 5.0;
+const DECREMENTO_TEMPO = 0.4;
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
